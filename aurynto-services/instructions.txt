@@ -1,0 +1,36 @@
+All the key commands etc on how everything works, how to set everything up and ensure everything is working correctly:
+
+The code:
+each asset type has a publisher (generates data), and worker (adds the data via mqtt to the database). Essentially, 
+run timescaledb and mqtt via docker (well, i can do that locally, but how can someone else do?), and then run both the
+worker and publisher (per asset). Data is published in batches. Worker inserts batch into TimescaleDB (PostgreSQL), there is and
+API provides HTTP endpoints to query the data, which can be viewed in a browser. 
+
+current setup: Publisher → MQTT Broker → Worker → Database
+
+
+Setup information:
+
+python3 -m venv venv
+source venv/bin/activate
+
+pip install -r requirements.txt
+
+after installing docker: docker run -d --name timescaledb \
+  -p 5432:5432 \
+  -e POSTGRES_PASSWORD=aurynto \
+  timescale/timescaledb-ha:pg15-latest
+
+docker exec -i timescaledb psql -U postgres < schema.sql (initialize the database using the schema.sql that is already there)
+docker exec timescaledb pg_dump -U postgres > backup.sql (create a safety backup, one already exists)
+
+docker run -d --name mosquitto \
+  -p 1883:1883 \
+  eclipse-mosquitto mosquitto -c /mosquitto-no-auth.conf (start mqtt)
+
+Then run the publisher/worker for a specific asset
+
+api: source venv/bin/activate (starts the api). then in browser run commands like http://localhost:8000/telemetry/recent/craneX (Last 10 telemetry readings for that asset in JSON format)
+
+
+
